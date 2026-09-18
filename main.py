@@ -12,9 +12,9 @@ userIds = os.environ['userIds'].split(',')
 authKeys = os.environ['authKeys'].split(',')
 secretKeys = os.environ['secretKeys'].split(',')
 webhook_discord_url = os.environ['webhookDiscord']
-device_info = os.environ.get('DEVICE_INFO_SECRET')
+device_infos = (os.environ.get('DEVICE_INFO_SECRET') or '').split(',')
 appCheck = os.environ.get('APP_CHECK_SECRET')
-user_agent_2 = os.environ.get('USER_AGENT_SECRET_2')
+user_agents = (os.environ.get('USER_AGENT_SECRET_2') or '').split(',')
 fate_region = 'JP'
 
 userNums = len(userIds)
@@ -44,6 +44,11 @@ def main():
         fgourl.set_latest_assets()
         for i in range(userNums):
             try:
+                ua = user_agents[i].strip() if len(user_agents) > 1 else user_agents[0].strip()
+                di = device_infos[i].strip() if len(device_infos) > 1 else device_infos[0].strip()
+                os.environ['USER_AGENT_SECRET_2'] = ua
+                os.environ['DEVICE_INFO_SECRET'] = di
+                fgourl.httpheader['User-Agent'] = ua
                 instance = user.user(userIds[i], authKeys[i], secretKeys[i])
                 time.sleep(1)
                 instance.topLogin()
@@ -70,7 +75,6 @@ def main():
                 #instance.LTO_drawFP()
 
             
-                
 
 
             except Exception as ex:
@@ -78,4 +82,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
