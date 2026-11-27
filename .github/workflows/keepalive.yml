@@ -1,0 +1,46 @@
+name: Keep Alive
+
+# 目的：防止 GitHub 因仓库连续 60 天无提交而自动禁用 scheduled workflow
+# 机制：每月 1 日与 15 日自动向默认分支提交一次 keepalive.txt，制造持续的仓库活动
+# 部署位置：.github/workflows/keepalive.yml
+
+on:
+  schedule:
+    # UTC 04:00 = 北京时间 12:00，每月 1 日与 15 日
+    - cron: "0 4 1,15 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 1
+
+      - name: Write timestamp
+        run: |
+          mkdir -p .github
+          printf 'last keepalive: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > .github/keepalive.txt
+          cat .github/keepalive.txt
+
+      - name: Commit and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/keepalive.txt
+          if git diff --cached --quiet; then
+            echo "no change, skip"
+          else
+            git commit -m "chore: keepalive [skip ci]"
+            git push
+          fi
